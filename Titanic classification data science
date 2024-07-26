@@ -1,0 +1,132 @@
+# This Python 3 environment comes with many helpful analytics libraries installed
+# It is defined by the kaggle/python Docker image: https://github.com/kaggle/docker-python
+# For example, here's several helpful packages to load
+
+import numpy as np # linear algebra
+import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
+
+# Input data files are available in the read-only "../input/" directory
+# For example, running this (by clicking run or pressing Shift+Enter) will list all files under the input directory
+
+import os
+for dirname, _, filenames in os.walk('/kaggle/input'):
+    for filename in filenames:
+        print(os.path.join(dirname, filename))
+
+# You can write up to 20GB to the current directory (/kaggle/working/) that gets preserved as output when you create a version using "Save & Run All" 
+# You can also write temporary files to /kaggle/temp/, but they won't be saved outside of the current session
+
+# Data Read
+titanic=pd.read_csv("/kaggle/input/titanic/titanic_train.csv", sep=",")
+titanic
+titanic.info()
+titanic_2=titanic.drop(["PassengerId","Name","Ticket","Cabin","SibSp","Parch"], axis=1)
+titanic_2
+titanic.describe()
+titanic.head()
+titanic.isnull()
+titanic.isnull().sum()
+titanic.tail()
+titanic.nunique()
+titanic.shape
+titanic.columns
+import matplotlib.pyplot as plt
+
+plt.rcParams["figure.figsize"]=[8,6]
+titanic_2["Age"].plot(kind='kde')
+plt.xlabel('Age')
+plt.show()
+titanic_2['Age_mean']=titanic_2['Age'].fillna(titanic_2["Age"].mean())
+titanic_2
+titanic_2['Age_median']=titanic_2['Age'].fillna(titanic_2["Age"].median())
+titanic_2
+plt.rcParams["figure.figsize"]=[8,6]
+titanic_2["Age"].plot(kind='kde', label='Age_original', c='b')
+titanic_2["Age_mean"].plot(kind='kde', label='Age_mean_imputation', c='r')
+titanic_2["Age_median"].plot(kind='kde', label='Age_median_imputation', c='g')
+plt.legend(loc='best', fontsize=12)
+plt.xlabel('Age')
+plt.show()
+
+# decided to remove missing datasets
+titanic_2.dropna(inplace=True)
+titanic_3=titanic_2.drop(['Age_mean','Age_median'], axis=1)
+titanic_3
+from sklearn.preprocessing import LabelEncoder
+
+le=LabelEncoder()
+le.fit(titanic_3["Sex"])
+titanic_3["le_Sex"]=le.transform(titanic_3['Sex'])
+le.fit(titanic_3["Embarked"])
+titanic_3["le_Embarked"]=le.transform(titanic_3["Embarked"])
+features=titanic_3.drop(["Survived","Sex","Embarked"],axis=1)
+labels=titanic_3[['Survived']]
+features
+# feature standardization
+
+from sklearn.preprocessing import StandardScaler
+
+sc=StandardScaler()
+X=sc.fit_transform(features)
+X
+# train, test set splitting
+
+from sklearn.model_selection import train_test_split
+
+X_train, X_test, y_train, y_test=train_test_split(X, labels, test_size=0.2, random_state=0)
+# classification-logistic regression
+from sklearn.linear_model import LogisticRegression
+
+lr_clf=LogisticRegression()
+lr_clf.fit(X_train,y_train)
+y_pred=lr_clf.predict(X_test)
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+
+accuracy_lr=accuracy_score(y_test,y_pred)
+conf_mat_lr=confusion_matrix(y_test,y_pred)
+clf_report_lr=classification_report(y_test,y_pred)
+
+accuracy_lr, conf_mat_lr, clf_report_lr
+# KNN classification
+from sklearn.neighbors import KNeighborsClassifier
+
+knn_clf=KNeighborsClassifier(n_neighbors=2)
+knn_clf.fit(X_train,y_train)
+y_pred_knn=knn_clf.predict(X_test)
+accuracy_knn=accuracy_score(y_test,y_pred_knn)
+conf_mat_knn=confusion_matrix(y_test,y_pred_knn)
+clf_report_knn=classification_report(y_test,y_pred_knn)
+
+accuracy_knn, conf_mat_knn, clf_report_knn
+# classification-SVM
+from sklearn.svm import SVC
+
+svc=SVC()
+svc.fit(X_train,y_train)
+y_pred_svc=svc.predict(X_test)
+accuracy_svc=accuracy_score(y_test,y_pred_svc)
+conf_mat_svc=confusion_matrix(y_test,y_pred_svc)
+clf_report_svc=classification_report(y_test,y_pred_svc)
+
+accuracy_svc, conf_mat_svc, clf_report_svc
+# classificatoin-random Forest
+from sklearn.ensemble import RandomForestClassifier
+
+rf_clf=RandomForestClassifier(n_estimators=500, random_state=42)
+rf_clf.fit(X_train, y_train)
+y_pred_rf=rf_clf.predict(X_test)
+accuracy_rf=accuracy_score(y_test,y_pred_rf)
+conf_mat_rf=confusion_matrix(y_test,y_pred_rf)
+clf_report_rf=classification_report(y_test,y_pred_rf)
+
+accuracy_rf, conf_mat_rf, clf_report_rf
+# Evaluation of models
+accuracy_total=[accuracy_lr*100, accuracy_knn*100, accuracy_svc*100, accuracy_rf*100]
+accuracy_label=["logistic regression",'knn', ' svm', 'random forest']
+plt.rcParams["figure.figsize"]=[6,4]
+plt.bar(accuracy_label,accuracy_total)
+plt.title("classification model vs accuracy (%)", size=16, c='b')
+plt.xlabel("classification model", size=14)
+plt.ylabel("accuracy (%)", size=14)
+plt.xticks(accuracy_label, size=12)
+plt.show()
